@@ -70,6 +70,9 @@
                     // 監聽：表單載入完成
                     onFormReady: function($form) {
                         console.log("HubSpot 表單已順利渲染完成！");
+                        // 動態將 'email' 欄位填入預設值
+                        // 使用 HubSpot 提供的內建 jQuery 語法
+                        $form.find('input[name="email"]').val("test-populate@example.com").change();
                     },
 
                     // 🌟 新增監聽：表單驗證失敗時觸發
