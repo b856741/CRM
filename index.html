@@ -1,195 +1,227 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>聯絡我們 - 階段三 API 介接</title>
-    <style>
-        /* 極簡質感風 CSS */
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: #f5f5f7;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-        }
-        .form-container {
-            background-color: #ffffff;
-            padding: 40px;
-            border-radius: 16px;
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
-            width: 100%;
-            max-width: 480px;
-            box-sizing: border-box;
-        }
-        h2 {
-            text-align: center;
-            color: #1d1d1f;
-            margin-bottom: 24px;
-            font-weight: 600;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-size: 14px;
-            color: #86868b;
-        }
-        .form-group input, .form-group textarea {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #d2d2d7;
-            border-radius: 8px;
-            font-size: 16px;
-            box-sizing: border-box;
-            background-color: #f5f5f7;
-            transition: all 0.3s ease;
-        }
-        .form-group input:focus, .form-group textarea:focus {
-            outline: none;
-            border-color: #0071e3;
-            background-color: #ffffff;
-            box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.15);
-        }
-        .submit-btn {
-            width: 100%;
-            padding: 14px;
-            background-color: #0071e3;
-            color: #ffffff;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-        }
-        .submit-btn:hover {
-            background-color: #0077ed;
-        }
-        .submit-btn:disabled {
-            background-color: #a1a1a6;
-            cursor: not-allowed;
-        }
-        /* 自訂的提示訊息樣式 */
-        .status-msg {
-            margin-top: 15px;
-            padding: 12px;
-            border-radius: 8px;
-            text-align: center;
-            display: none;
-            font-size: 14px;
-        }
-        .status-success {
-            background-color: #e2f0d9;
-            color: #385723;
-            border: 1px solid #c5e1b2;
-        }
-        .status-error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-    </style>
-</head>
-<body>
+ <!DOCTYPE html>
+    <html lang="zh-Hant">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>聯絡我們 - 階段三 API 介接</title>
+        <style>
+            /* 極簡質感風 CSS */
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                background-color: #f5f5f7;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+                margin: 0;
+            }
+            .form-container {
+                background-color: #ffffff;
+                padding: 40px;
+                border-radius: 16px;
+                box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+                width: 100%;
+                max-width: 480px;
+                box-sizing: border-box;
+            }
+            h2 {
+                text-align: center;
+                color: #1d1d1f;
+                margin-bottom: 24px;
+                font-weight: 600;
+            }
+            .form-group {
+                margin-bottom: 20px;
+            }
+            .form-row {
+                display: flex;
+                gap: 15px;
+            }
+            .form-row .form-group {
+                flex: 1;
+            }
+            .form-group label {
+                display: block;
+                margin-bottom: 8px;
+                font-size: 14px;
+                color: #86868b;
+            }
+            .form-group input, .form-group textarea {
+                width: 100%;
+                padding: 12px;
+                border: 1px solid #d2d2d7;
+                border-radius: 8px;
+                font-size: 16px;
+                box-sizing: border-box;
+                background-color: #f5f5f7;
+                transition: all 0.3s ease;
+            }
+            .form-group input:focus, .form-group textarea:focus {
+                outline: none;
+                border-color: #0071e3;
+                background-color: #ffffff;
+                box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.15);
+            }
+            .submit-btn {
+                width: 100%;
+                padding: 14px;
+                background-color: #0071e3;
+                color: #ffffff;
+                border: none;
+                border-radius: 8px;
+                font-size: 16px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: background-color 0.2s ease;
+            }
+            .submit-btn:hover {
+                background-color: #0077ed;
+            }
+            .submit-btn:disabled {
+                background-color: #a1a1a6;
+                cursor: not-allowed;
+            }
+            .status-msg {
+                margin-top: 15px;
+                padding: 12px;
+                border-radius: 8px;
+                text-align: center;
+                display: none;
+                font-size: 14px;
+            }
+            .status-success {
+                background-color: #e2f0d9;
+                color: #385723;
+                border: 1px solid #c5e1b2;
+            }
+            .status-error {
+                background-color: #f8d7da;
+                color: #721c24;
+                border: 1px solid #f5c6cb;
+            }
+        </style>
+    </head>
+    <body>
 
-    <div class="form-container">
-        <h2>即刻與我們聯絡</h2>
-        
-        <!-- 完全客製化的自訂 HTML 表單 -->
-        <form id="crm-contact-form">
-            <div class="form-group">
-                <label for="email">電子郵件 *</label>
-                <input type="email" id="email" required placeholder="example@mail.com">
+        <div class="form-container">
+            <h2>即刻與我們聯絡</h2>
+
+            <form id="crm-contact-form">
+                <!-- 姓名並排欄位 -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="firstname">名字 (First Name)</label>
+                        <input type="text" id="firstname" placeholder="小明">
+                    </div>
+                    <div class="form-group">
+                        <label for="lastname">姓氏 (Last Name)</label>
+                        <input type="text" id="lastname" placeholder="王">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">電子郵件 *</label>
+                    <input type="email" id="email" required placeholder="example@mail.com">
+                </div>
+
+                <div class="form-group">
+                    <label for="phone">電話號碼 (Phone Number)</label>
+                    <input type="tel" id="phone" placeholder="0912345678">
+                </div>
+
+                <div class="form-group">
+                    <label for="message">您的訊息</label>
+                    <textarea id="message" rows="4" placeholder="請輸入您想對我們說的話..."></textarea>
+                </div>
+
+                <button type="submit" id="submit-button" class="submit-btn">送出訊息</button>
+            </form>
+
+            <div id="success-message" class="status-msg status-success">
+                感謝您的提交！我們已收到您的聯絡資訊。
             </div>
-            
-            <div class="form-group">
-                <label for="message">您的訊息</label>
-                <textarea id="message" rows="4" placeholder="請輸入您想對我們說的話..."></textarea>
+            <div id="error-message" class="status-msg status-error">
+                提交失敗，請稍後再試。
             </div>
-            
-            <button type="submit" id="submit-button" class="submit-btn">送出訊息</button>
-        </form>
-        
-        <!-- 自訂提示 -->
-        <div id="success-message" class="status-msg status-success">
-            感謝您的提交！我們已收到您的聯絡資訊。
         </div>
-        <div id="error-message" class="status-msg status-error">
-            提交失敗，請稍後再試。
-        </div>
-    </div>
 
-    <script>
-        document.getElementById('crm-contact-form').addEventListener('submit', function(event) {
-            event.preventDefault(); // 阻止瀏覽器預設的表單送出行為
-            
-            const submitBtn = document.getElementById('submit-button');
-            const successMsg = document.getElementById('success-message');
-            const errorMsg = document.getElementById('error-message');
-            
-            // 讀取欄位資料
-            const emailValue = document.getElementById('email').value;
-            const messageValue = document.getElementById('message').value;
-            
-            // 停用按鈕，防止重複點擊
-            submitBtn.disabled = true;
-            submitBtn.textContent = '傳送中...';
-            successMsg.style.display = 'none';
-            errorMsg.style.display = 'none';
+        <script>
+            document.getElementById('crm-contact-form').addEventListener('submit', function(event) {
+                event.preventDefault();
 
-            // 構建 HubSpot 規格之 Submit API 要求資料
-            const portalId = "246752949";
-            const formId = "5be6d1ce-eb9f-4349-860f-5fbfb4b8423d";
-            const apiUrl = `https://api.hsforms.com/submissions/v3/integration/submit/${portalId}/${formId}`;
+                const submitBtn = document.getElementById('submit-button');
+                const successMsg = document.getElementById('success-message');
+                const errorMsg = document.getElementById('error-message');
 
-            const requestBody = {
-                fields: [
-                    {
-                        name: "email",
-                        value: emailValue
-                    },
-                    {
-                        name: "message",
-                        value: messageValue
+                // 讀取所有欄位資料
+                const firstNameValue = document.getElementById('firstname').value;
+                const lastNameValue = document.getElementById('lastname').value;
+                const emailValue = document.getElementById('email').value;
+                const phoneValue = document.getElementById('phone').value;
+                const messageValue = document.getElementById('message').value;
+
+                submitBtn.disabled = true;
+                submitBtn.textContent = '傳送中...';
+                successMsg.style.display = 'none';
+                errorMsg.style.display = 'none';
+
+                const portalId = "246752949";
+                const formId = "5be6d1ce-eb9f-4349-860f-5fbfb4b8423d";
+                const apiUrl = `https://api.hsforms.com/submissions/v3/integration/submit/${portalId}/${formId}`;
+
+                // 打包所有資料送往 HubSpot
+                const requestBody = {
+                    fields: [
+                        {
+                            name: "firstname",
+                            value: firstNameValue
+                        },
+                        {
+                            name: "lastname",
+                            value: lastNameValue
+                        },
+                        {
+                            name: "email",
+                            value: emailValue
+                        },
+                        {
+                            name: "phone",
+                            value: phoneValue
+                        },
+                        {
+                            name: "message",
+                            value: messageValue
+                        }
+                    ],
+                    context: {
+                        pageUri: window.location.href,
+                        pageName: document.title
                     }
-                ],
-                context: {
-                    pageUri: window.location.href,
-                    pageName: document.title
-                }
-            };
+                };
 
-            // 使用 Fetch API 非同步發送請求
-            fetch(apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(requestBody)
-            })
-            .then(response => {
-                if (response.ok) {
-                    console.log("資料成功傳送至 HubSpot！");
-                    // 隱藏表單
-                    document.getElementById('crm-contact-form').style.display = 'none';
-                    // 顯示感謝資訊
-                    successMsg.style.display = 'block';
-                } else {
-                    throw new Error("API 傳送錯誤，HTTP 狀態碼: " + response.status);
-                }
-            })
-            .catch(error => {
-                console.error("提交表單時發生錯誤：", error);
-                errorMsg.style.display = 'block';
-                submitBtn.disabled = false;
-                submitBtn.textContent = '送出訊息';
+                fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                })
+                .then(response => {
+                    if (response.ok) {
+                        console.log("資料成功傳送至 HubSpot！");
+                        document.getElementById('crm-contact-form').style.display = 'none';
+                        successMsg.style.display = 'block';
+                    } else {
+                        throw new Error("API 傳送錯誤，HTTP 狀態碼: " + response.status);
+                    }
+                })
+                .catch(error => {
+                    console.error("提交表單時發生錯誤：", error);
+                    errorMsg.style.display = 'block';
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = '送出訊息';
+                });
             });
-        });
-    </script>
-</body>
-</html>
+        </script>
+    </body>
+    </html>
