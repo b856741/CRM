@@ -1,47 +1,95 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>聯絡我們</title>
-    <style>
-        /* 極簡質感風 CSS */
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: #f5f5f7;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-        }
-        .form-container {
-            background-color: #ffffff;
-            padding: 40px;
-            border-radius: 16px;
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
-            width: 100%;
-            max-width: 480px;
-        }
-        h2 {
-            text-align: center;
-            color: #1d1d1f;
-            margin-bottom: 24px;
-            font-weight: 600;
-        }
-    </style>
-</head>
-<body>
+    <!DOCTYPE html>
+    <html lang="zh-Hant">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>聯絡我們 - 階段二測試</title>
+        <style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                background-color: #f5f5f7;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+                margin: 0;
+            }
+            .form-container {
+                background-color: #ffffff;
+                padding: 40px;
+                border-radius: 16px;
+                box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+                width: 100%;
+                max-width: 480px;
+            }
+            h2 {
+                text-align: center;
+                color: #1d1d1f;
+                margin-bottom: 24px;
+            }
+            /* 自訂的提示訊息樣式 */
+            .status-msg {
+                margin-top: 15px;
+                padding: 10px;
+                border-radius: 8px;
+                text-align: center;
+                display: none;
+                font-size: 14px;
+            }
+            .status-success {
+                background-color: #d4edda;
+                color: #155724;
+            }
+        </style>
+    </head>
+    <body>
 
-    <div class="form-container">
-        <h2>即刻與我們聯絡</h2>
-        
-        <!--  以下是您專屬的 HubSpot 內嵌表單  -->
-        <script src="https://js-na2.hsforms.net/forms/embed/246752949.js" defer></script>
-        <div class="hs-form-frame" data-region="na2" data-form-id="5be6d1ce-eb9f-4349-860f-5fbfb4b8423d" data-portal-id="246752949"></div>
-        <!--  表單結束  -->
-        
-    </div>
+        <div class="form-container">
+            <h2>即刻與我們聯絡</h2>
 
-</body>
-</html>
+            <!-- 表單載入容器 -->
+            <div id="my-custom-form-target"></div>
+
+            <!-- 自訂提交成功提示 -->
+            <div id="success-message" class="status-msg status-success">
+                感謝您的提交！我們已收到您的聯絡資訊。
+            </div>
+        </div>
+
+        <!-- 載入 HubSpot Forms V2 SDK -->
+        <script charset="utf-8" type="text/javascript" src="https://js-na2.hsforms.net/forms/embed/v2.js"></script>
+
+        <script>
+            hbspt.forms.create({
+                region: "na2",
+                portalId: "246752949",
+                formId: "5be6d1ce-eb9f-4349-860f-5fbfb4b8423d",
+                target: "#my-custom-form-target",
+
+                // 監聽：表單載入完成
+                onFormReady: function($form) {
+                    console.log("HubSpot 表單已順利渲染完成！");
+
+                    // 任務 A 範例：動態注入值到表單欄位中
+                    // 假設您的表單中有「當前網頁路徑」或「備註」欄位，可透過 jQuery (HubSpot 內建提供) 寫入值
+                    // 例如：$form.find('input[name="message"]').val("來自階段二測試頁面").change();
+                },
+
+                // 監聽：使用者點擊提交按鈕
+                onFormSubmit: function($form) {
+                    console.log("使用者提交了表單，正在傳送資料...");
+                },
+
+                // 監聽：表單順利提交成功
+                onFormSubmitted: function($form) {
+                    console.log("表單提交成功！");
+                    // 隱藏表單容器
+                    document.getElementById('my-custom-form-target').style.display = 'none';
+                    // 顯示自訂的感謝訊息
+                    document.getElementById('success-message').style.display = 'block';
+                }
+            });
+        </script>
+    </body>
+    </html>
