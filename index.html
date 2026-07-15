@@ -62,34 +62,33 @@
 
         <script>
             hbspt.forms.create({
-                region: "na2",
-                portalId: "246752949",
-                formId: "5be6d1ce-eb9f-4349-860f-5fbfb4b8423d",
-                target: "#my-custom-form-target",
+                    region: "na2",
+                    portalId: "246752949",
+                    formId: "5be6d1ce-eb9f-4349-860f-5fbfb4b8423d",
+                    target: "#my-custom-form-target",
 
-                // 監聽：表單載入完成
-                onFormReady: function($form) {
-                    console.log("HubSpot 表單已順利渲染完成！");
+                    // 監聽：表單載入完成
+                    onFormReady: function($form) {
+                        console.log("HubSpot 表單已順利渲染完成！");
+                    },
 
-                    // 任務 A 範例：動態注入值到表單欄位中
-                    // 假設您的表單中有「當前網頁路徑」或「備註」欄位，可透過 jQuery (HubSpot 內建提供) 寫入值
-                    // 例如：$form.find('input[name="message"]').val("來自階段二測試頁面").change();
-                },
+                    // 🌟 新增監聽：表單驗證失敗時觸發
+                    onFormFailedValidation: function($form, errors) {
+                        console.warn("【警告】表單驗證失敗！", errors);
+                    },
 
-                // 監聽：使用者點擊提交按鈕
-                onFormSubmit: function($form) {
-                    console.log("使用者提交了表單，正在傳送資料...");
-                },
+                    // 監聽：使用者點擊提交按鈕
+                    onFormSubmit: function($form) {
+                        console.log("使用者提交了表單，正在傳送資料...");
+                    },
 
-                // 監聽：表單順利提交成功
-                onFormSubmitted: function($form) {
-                    console.log("表單提交成功！");
-                    // 隱藏表單容器
-                    document.getElementById('my-custom-form-target').style.display = 'none';
-                    // 顯示自訂的感謝訊息
-                    document.getElementById('success-message').style.display = 'block';
-                }
-            });
+                    // 監聽：表單順利提交成功
+                    onFormSubmitted: function($form) {
+                        console.log("表單提交成功！");
+                        document.getElementById('my-custom-form-target').style.display = 'none';
+                        document.getElementById('success-message').style.display = 'block';
+                    }
+                });
         </script>
     </body>
     </html>
