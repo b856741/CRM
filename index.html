@@ -168,9 +168,7 @@
         </div>
 
         <script>
-            document.getElementById('crm-contact-form').addEventListener('submit', function(event) {
-                event.preventDefault();
-                        // 驗證輔助函式
+            // ── 驗證輔助函式 ──────────────────────────────────────────
             function setError(inputId, errorId, show) {
                 const input = document.getElementById(inputId);
                 const error = document.getElementById(errorId);
@@ -182,106 +180,90 @@
                     error.classList.remove('visible');
                 }
             }
-        
+
             function validateForm() {
                 let isValid = true;
-        
+
                 const firstname = document.getElementById('firstname').value.trim();
-                const lastname = document.getElementById('lastname').value.trim();
-                const email = document.getElementById('email').value.trim();
-                const phone = document.getElementById('phone').value.trim();
-        
+                const lastname  = document.getElementById('lastname').value.trim();
+                const email     = document.getElementById('email').value.trim();
+                const phone     = document.getElementById('phone').value.trim();
+
                 // 名字：有填但全是空白
                 const firstnameInvalid = document.getElementById('firstname').value.length > 0 && firstname === '';
                 setError('firstname', 'error-firstname', firstnameInvalid);
                 if (firstnameInvalid) isValid = false;
-        
+
                 // 姓氏：有填但全是空白
                 const lastnameInvalid = document.getElementById('lastname').value.length > 0 && lastname === '';
                 setError('lastname', 'error-lastname', lastnameInvalid);
                 if (lastnameInvalid) isValid = false;
-        
+
                 // Email：必填 + 格式驗證
                 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                 const emailInvalid = email === '' || !emailRegex.test(email);
                 setError('email', 'error-email', emailInvalid);
                 if (emailInvalid) isValid = false;
-        
-                // 電話：非必填，但若有填需符合格式
+
+                // 電話：非必填，但若有填需符合台灣格式（09 開頭共 10 碼）
                 const phoneRegex = /^09\d{8}$/;
                 const phoneInvalid = phone !== '' && !phoneRegex.test(phone);
                 setError('phone', 'error-phone', phoneInvalid);
                 if (phoneInvalid) isValid = false;
-        
+
                 return isValid;
             }
-        
+
+            // ── 離開欄位時即時驗證（blur）──────────────────────────────
+            ['firstname', 'lastname', 'email', 'phone'].forEach(function(id) {
+                document.getElementById(id).addEventListener('blur', validateForm);
+            });
+
+            // ── 表單提交監聽器 ────────────────────────────────────────
             document.getElementById('crm-contact-form').addEventListener('submit', function(event) {
                 event.preventDefault();
-        
-                // 先執行驗證，失敗則中止
+
+                // 先執行驗證，失敗則中止，不送出 API
                 if (!validateForm()) return;
-        
-                const submitBtn = document.getElementById('submit-button');
+
+                const submitBtn  = document.getElementById('submit-button');
                 const successMsg = document.getElementById('success-message');
-                const errorMsg = document.getElementById('error-message');
-            });
-                const submitBtn = document.getElementById('submit-button');
-                const successMsg = document.getElementById('success-message');
-                const errorMsg = document.getElementById('error-message');
+                const errorMsg   = document.getElementById('error-message');
 
                 // 讀取所有欄位資料
                 const firstNameValue = document.getElementById('firstname').value;
-                const lastNameValue = document.getElementById('lastname').value;
-                const emailValue = document.getElementById('email').value;
-                const phoneValue = document.getElementById('phone').value;
-                const messageValue = document.getElementById('message').value;
+                const lastNameValue  = document.getElementById('lastname').value;
+                const emailValue     = document.getElementById('email').value;
+                const phoneValue     = document.getElementById('phone').value;
+                const messageValue   = document.getElementById('message').value;
 
-                submitBtn.disabled = true;
+                submitBtn.disabled    = true;
                 submitBtn.textContent = '傳送中...';
                 successMsg.style.display = 'none';
-                errorMsg.style.display = 'none';
+                errorMsg.style.display   = 'none';
 
                 const portalId = "246752949";
-                const formId = "5be6d1ce-eb9f-4349-860f-5fbfb4b8423d";
-                const apiUrl = `https://api.hsforms.com/submissions/v3/integration/submit/${portalId}/${formId}`;
+                const formId   = "5be6d1ce-eb9f-4349-860f-5fbfb4b8423d";
+                const apiUrl   = `https://api.hsforms.com/submissions/v3/integration/submit/${portalId}/${formId}`;
 
-                // 打包所有資料送往 HubSpot
                 const requestBody = {
                     fields: [
-                        {
-                            name: "firstname",
-                            value: firstNameValue
-                        },
-                        {
-                            name: "lastname",
-                            value: lastNameValue
-                        },
-                        {
-                            name: "email",
-                            value: emailValue
-                        },
-                        {
-                            name: "phone",
-                            value: phoneValue
-                        },
-                        {
-                            name: "message",
-                            value: messageValue
-                        }
+                        { name: "firstname", value: firstNameValue },
+                        { name: "lastname",  value: lastNameValue  },
+                        { name: "email",     value: emailValue     },
+                        { name: "phone",     value: phoneValue     },
+                        { name: "message",   value: messageValue   }
                     ],
                     context: {
-                        pageUri: window.location.href,
+                        pageUri:  window.location.href,
                         pageName: document.title
                     }
                 };
 
                 fetch(apiUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(requestBody)
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body:    JSON.stringify(requestBody)
                 })
                 .then(response => {
                     if (response.ok) {
@@ -294,13 +276,9 @@
                 })
                 .catch(error => {
                     console.error("提交表單時發生錯誤：", error);
-                    errorMsg.style.display = 'block';
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = '送出訊息';
-                });
-                // 離開欄位時即時驗證
-                ['firstname', 'lastname', 'email', 'phone'].forEach(function(id) {
-                    document.getElementById(id).addEventListener('blur', validateForm);
+                    errorMsg.style.display    = 'block';
+                    submitBtn.disabled        = false;
+                    submitBtn.textContent     = '送出訊息';
                 });
             });
         </script>
