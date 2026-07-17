@@ -206,6 +206,60 @@
                 background-color: #005bbf;
             }
         }
+
+        /* ── 階段四：追蹤參數偵錯面板 ── */
+        .debug-panel {
+            background: #1a1a2e;
+            border: 1px solid #0f3460;
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 13px;
+        }
+        .debug-panel-title {
+            color: #e94560;
+            font-weight: 700;
+            font-size: 12px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .debug-panel-title::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #e94560;
+            animation: blink 1.2s ease-in-out infinite;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0.2; }
+        }
+        .debug-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 4px 0;
+            border-bottom: 1px solid #0f3460;
+        }
+        .debug-row:last-child { border-bottom: none; }
+        .debug-key {
+            color: #a8d8ea;
+            min-width: 130px;
+            flex-shrink: 0;
+        }
+        .debug-val {
+            color: #f5f5f5;
+            word-break: break-all;
+        }
+        .debug-val.found    { color: #2ecc71; }
+        .debug-val.missing  { color: #888; font-style: italic; }
     </style>
     <!-- 引入 HubSpot 官方 SDK (僅用於頁籤一，加 defer 避免阻擋網頁載入) -->
     <script charset="utf-8" type="text/javascript" src="https://js-na2.hsforms.net/forms/embed/v2.js" defer></script>
@@ -227,6 +281,36 @@
         <!-- 頁籤一：自訂 AJAX/Fetch 表單 -->
         <div id="ajax-tab" class="tab-content active">
             <h2>原生 AJAX 聯絡表單</h2>
+
+            <!-- 階段四：即時追蹤參數偵錯面板 -->
+            <div class="debug-panel" id="debug-panel">
+                <div class="debug-panel-title">🔍 階段四 — 即時追蹤偵測</div>
+                <div class="debug-row">
+                    <span class="debug-key">utm_source</span>
+                    <span class="debug-val" id="dbg-utm_source"></span>
+                </div>
+                <div class="debug-row">
+                    <span class="debug-key">utm_medium</span>
+                    <span class="debug-val" id="dbg-utm_medium"></span>
+                </div>
+                <div class="debug-row">
+                    <span class="debug-key">utm_campaign</span>
+                    <span class="debug-val" id="dbg-utm_campaign"></span>
+                </div>
+                <div class="debug-row">
+                    <span class="debug-key">utm_term</span>
+                    <span class="debug-val" id="dbg-utm_term"></span>
+                </div>
+                <div class="debug-row">
+                    <span class="debug-key">utm_content</span>
+                    <span class="debug-val" id="dbg-utm_content"></span>
+                </div>
+                <div class="debug-row">
+                    <span class="debug-key">hubspotutk</span>
+                    <span class="debug-val" id="dbg-hutk"></span>
+                </div>
+            </div>
+
             <form id="crm-contact-form">
                 <div class="form-row">
                     <div class="form-group">
@@ -293,7 +377,35 @@
     <script>
         // ── 頁籤切換邏輯 ──────────────────────────────────────────
         let sdkLoaded = false;
-        
+
+        // ── 階段四：偵錯面板初始化 ────────────────────────────────
+        (function initDebugPanel() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const utmKeys   = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
+
+            utmKeys.forEach(function(key) {
+                const el  = document.getElementById('dbg-' + key);
+                const val = urlParams.get(key);
+                if (val) {
+                    el.textContent = val;
+                    el.className   = 'debug-val found';
+                } else {
+                    el.textContent = '（未偵測到）';
+                    el.className   = 'debug-val missing';
+                }
+            });
+
+            const hutkEl  = document.getElementById('dbg-hutk');
+            const hutkVal = getCookie('hubspotutk');
+            if (hutkVal) {
+                hutkEl.textContent = hutkVal;
+                hutkEl.className   = 'debug-val found';
+            } else {
+                hutkEl.textContent = '（Cookie 尚未寫入，需 HubSpot Tracking Code 運作後生成）';
+                hutkEl.className   = 'debug-val missing';
+            }
+        })();
+
         function switchTab(tabId) {
             // 切換按鈕 active 樣式
             document.querySelectorAll('.tab-btn').forEach(btn => {
