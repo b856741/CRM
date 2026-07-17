@@ -338,7 +338,16 @@
                         pageName: document.title
                     }
                 };
-
+                // ===== 偵錯用：送出前先檢查實際值 =====
+                console.log("inquiry_type actual payload =", inquiryTypeValue);
+                console.log("requestBody =", JSON.stringify(requestBody, null, 2));
+                alert("即將送出 inquiry_type = " + inquiryTypeValue);
+                
+                fetch(apiUrl, {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body:    JSON.stringify(requestBody)
+                })
                 fetch(apiUrl, {
                     method:  'POST',
                     headers: { 'Content-Type': 'application/json' },
