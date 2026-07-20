@@ -183,6 +183,17 @@
             display: block;
         }
 
+        /* ── 階段五：條件欄位樣式 ── */
+        .conditional-section {
+            display: none;
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #fcfcfd;
+            border: 1px solid #e3e3e8;
+            border-radius: 8px;
+            border-left: 4px solid #0071e3;
+        }
+
         /* ── RWD：行動裝置適配 ────────────────────────────────── */
         @media (max-width: 480px) {
             .form-container {
@@ -346,6 +357,22 @@
                         <option value="tech_support">技術支援 (Technical Support)</option>
                     </select>
                     <span class="field-error" id="error-inquiry_type">請選擇一個詢問類型。</span>
+                    
+                    <!-- 階段五：動態條件欄位區塊 -->
+                    <div id="section-partnership" class="conditional-section">
+                        <label for="company" style="margin-bottom: 8px; display: block; font-size: 14px; color: #86868b;">公司名稱</label>
+                        <input type="text" id="company" name="company" placeholder="請輸入公司名稱" disabled>
+                    </div>
+
+                    <div id="section-product_inquiry" class="conditional-section">
+                        <label for="product_category" style="margin-bottom: 8px; display: block; font-size: 14px; color: #86868b;">產品類別</label>
+                        <select id="product_category" name="product_category" disabled>
+                            <option value="">請選擇</option>
+                            <option value="software">軟體解決方案</option>
+                            <option value="hardware">硬體設備</option>
+                            <option value="other">其他</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -505,8 +532,81 @@
         ['firstname', 'lastname', 'email', 'phone'].forEach(function(id) {
             document.getElementById(id).addEventListener('blur', validateForm);
         });
-        document.getElementById('inquiry_type').addEventListener('change', validateForm);
+
+        // ── 階段五：草稿與條件欄位 ────────────────────────────────
+        const DRAFT_KEY = 'crm_form_draft';
+        const FORM_FIELDS = ['firstname', 'lastname', 'email', 'phone', 'inquiry_type', 'message', 'company', 'product_category'];
+
+        function saveDraft() {
+            const draft = {};
+            FORM_FIELDS.forEach(name => {
+                const el = document.getElementById(name);
+                if (el) draft[name] = el.value;
+            });
+            localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+        }
+
+        function restoreDraft() {
+            const raw = localStorage.getItem(DRAFT_KEY);
+            if (!raw) return;
+
+            const draft = JSON.parse(raw);
+            const hasContent = Object.values(draft).some(v => v && v.trim() !== '');
+            if (!hasContent) return;
+
+            if (confirm('偵測到未完成的草稿，是否還原填寫內容？')) {
+                FORM_FIELDS.forEach(name => {
+                    const el = document.getElementById(name);
+                    if (el && draft[name] !== undefined) {
+                        el.value = draft[name];
+                    }
+                });
+                // 還原後主動觸發條件邏輯與驗證
+                document.getElementById('inquiry_type').dispatchEvent(new Event('change'));
+            } else {
+                localStorage.removeItem(DRAFT_KEY);
+            }
+        }
+
+        function clearDraft() {
+            localStorage.removeItem(DRAFT_KEY);
+        }
+
+        // 綁定草稿儲存
+        FORM_FIELDS.forEach(name => {
+            const el = document.getElementById(name);
+            if (el) el.addEventListener('change', saveDraft);
+            if (el) el.addEventListener('input', saveDraft); // 同時監聽 input 以即時儲存
+        });
+
+        // 條件欄位切換邏輯
+        function toggleConditionalFields() {
+            const selected = document.getElementById('inquiry_type').value;
+            
+            // 先全部隱藏與 disable
+            document.querySelectorAll('.conditional-section').forEach(el => {
+                el.style.display = 'none';
+                el.querySelectorAll('input, select, textarea').forEach(input => {
+                    input.disabled = true;
+                });
+            });
+
+            // 顯示對應區塊
+            const target = document.getElementById(`section-${selected}`);
+            if (target) {
+                target.style.display = 'block';
+                target.querySelectorAll('input, select, textarea').forEach(input => {
+                    input.disabled = false;
+                });
+            }
+            validateForm();
+        }
+
+        document.getElementById('inquiry_type').addEventListener('change', toggleConditionalFields);
         document.getElementById('inquiry_type').addEventListener('blur', validateForm);
+
+        // 頁面載入時嘗試還原
+        restoreDraft();
 
         // ── 表單提交監聽器 ────────────────────────────────────────
         document.getElementById('crm-contact-form').addEventListener('submit', function(event) {
@@ -543,6 +643,16 @@
                 { name: "message",      value: messageValue   }
             ];
 
+            // 階段五：取得動態條件欄位的值（如果有啟用）
+            const companyEl = document.getElementById('company');
+            if (!companyEl.disabled && companyEl.value) {
+                fields.push({ name: "company", value: companyEl.value });
+            }
+            const productCategoryEl = document.getElementById('product_category');
+            if (!productCategoryEl.disabled && productCategoryEl.value) {
+                fields.push({ name: "product_category", value: productCategoryEl.value });
+            }
+
             // 自動擷取網址中的 UTM 行銷追蹤參數
             const urlParams = new URLSearchParams(window.location.search);
             const utmParams = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
@@ -576,6 +686,7 @@
                     console.log("資料、行銷參數與 UTK 訪客軌跡成功傳送至 HubSpot！");
                     document.getElementById('crm-contact-form').style.display = 'none';
                     successMsg.style.display = 'block';
+                    clearDraft(); // 送出成功後清除草稿
                 } else {
                     throw new Error("API 傳送錯誤，HTTP 狀態碼: " + response.status);
                 }
