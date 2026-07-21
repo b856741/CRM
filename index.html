@@ -194,6 +194,79 @@
             border-left: 4px solid #0071e3;
         }
 
+        /* ── 階段六：GDPR 同意核取樣式 ── */
+        .gdpr-group {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 14px;
+            background-color: #f5f5f7;
+            border-radius: 8px;
+            border: 1px solid #d2d2d7;
+            transition: border-color 0.3s ease;
+        }
+        .gdpr-group.is-invalid {
+            border-color: #dc3545;
+            background-color: #fff8f8;
+            box-shadow: 0 0 0 4px rgba(220, 53, 69, 0.12);
+        }
+        .gdpr-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            min-width: 18px;
+            margin-top: 2px;
+            accent-color: #0071e3;
+            cursor: pointer;
+        }
+        .gdpr-group label {
+            font-size: 13px;
+            color: #3a3a3c;
+            line-height: 1.5;
+            cursor: pointer;
+        }
+        .gdpr-group label a {
+            color: #0071e3;
+            text-decoration: none;
+        }
+        .gdpr-group label a:hover {
+            text-decoration: underline;
+        }
+
+        /* ── 階段六：離線狀態橫幅樣式 ── */
+        .offline-banner {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 9999;
+            background: #ff9500;
+            color: #fff;
+            text-align: center;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .offline-banner.visible {
+            display: block;
+        }
+        .queue-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.3);
+            border-radius: 12px;
+            padding: 1px 8px;
+            margin-left: 6px;
+            font-size: 12px;
+        }
+        .status-offline {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffecb5;
+        }
+
         /* ── RWD：行動裝置適配 ────────────────────────────────── */
         @media (max-width: 480px) {
             .form-container {
@@ -276,6 +349,12 @@
     <script charset="utf-8" type="text/javascript" src="https://js-na2.hsforms.net/forms/embed/v2.js" defer></script>
 </head>
 <body>
+
+    <!-- 階段六：離線狀態橫幅 -->
+    <div class="offline-banner" id="offline-banner">
+        ⚠️ 您目前處於離線狀態，表單資料將暫存於瀏覽器，網路恢復後自動送出。
+        <span class="queue-badge" id="queue-count-badge" style="display:none;"></span>
+    </div>
 
     <h1 class="demo-title">HubSpot 整合成果展示</h1>
     <p class="demo-subtitle">對比官方內嵌 SDK 與自主掌控 AJAX API 的開發成效</p>
@@ -380,14 +459,26 @@
                     <textarea id="message" rows="4" placeholder="請輸入您想對我們說的話..."></textarea>
                 </div>
 
+                <!-- 階段六：GDPR 同意核取 -->
+                <div class="gdpr-group" id="gdpr-group">
+                    <input type="checkbox" id="gdpr_consent" name="gdpr_consent">
+                    <label for="gdpr_consent">
+                        我已閱讀並同意 <a href="#" target="_blank">隱私權政策</a>，並同意 Alpha 依本政策蒐集與使用本表單所填寫之個人資料。
+                    </label>
+                </div>
+                <span class="field-error" id="error-gdpr" style="display:none; margin-top:-14px; margin-bottom:12px;">請先勾選同意隱私政策才能送出。</span>
+
                 <button type="submit" id="submit-button" class="submit-btn">送出訊息</button>
             </form>
 
             <div id="success-message" class="status-msg status-success">
-                感謝您的提交！我們已收到您的聯絡資訊。
+                ✅ 感謝您的提交！我們已收到您的聯絡資訊。
             </div>
             <div id="error-message" class="status-msg status-error">
-                提交失敗，請稍後再試。
+                ❌ 提交失敗，請稍後再試。
+            </div>
+            <div id="offline-message" class="status-msg status-offline">
+                📥 您目前離線，資料已暫存於瀏覽器，網路恢復後將自動重新送出。
             </div>
         </div>
 
@@ -608,42 +699,160 @@
         // 頁面載入時嘗試還原
         restoreDraft();
 
-        // ── 表單提交監聽器 ────────────────────────────────────────
-        document.getElementById('crm-contact-form').addEventListener('submit', function(event) {
+        // ── 階段六：GDPR 驗證 ─────────────────────────────────────
+        function validateGDPR() {
+            const checkbox  = document.getElementById('gdpr_consent');
+            const group     = document.getElementById('gdpr-group');
+            const errorSpan = document.getElementById('error-gdpr');
+            if (!checkbox.checked) {
+                group.classList.add('is-invalid');
+                errorSpan.style.display = 'block';
+                return false;
+            }
+            group.classList.remove('is-invalid');
+            errorSpan.style.display = 'none';
+            return true;
+        }
+
+        document.getElementById('gdpr_consent').addEventListener('change', validateGDPR);
+
+        // ── 階段六：IndexedDB 離線提交佇列 ───────────────────────────
+        const DB_NAME    = 'CRM_OfflineQueue';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'queue';
+
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(DB_NAME, DB_VERSION);
+                req.onupgradeneeded = function(e) {
+                    e.target.result.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+                };
+                req.onsuccess = function(e) { resolve(e.target.result); };
+                req.onerror   = function(e) { reject(e.target.error); };
+            });
+        }
+
+        async function addToQueue(requestBody) {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx    = db.transaction(STORE_NAME, 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+                const req   = store.add({ data: requestBody, timestamp: Date.now() });
+                req.onsuccess = () => resolve(req.result);
+                req.onerror   = () => reject(req.error);
+            });
+        }
+
+        async function getQueueCount() {
+            const db = await openDB();
+            return new Promise((resolve) => {
+                const tx  = db.transaction(STORE_NAME, 'readonly');
+                const req = tx.objectStore(STORE_NAME).count();
+                req.onsuccess = () => resolve(req.result);
+            });
+        }
+
+        async function updateQueueBadge() {
+            const count = await getQueueCount();
+            const badge = document.getElementById('queue-count-badge');
+            if (count > 0) {
+                badge.textContent  = `${count} 筆待送出`;
+                badge.style.display = 'inline-block';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        async function flushQueue() {
+            const db = await openDB();
+            const all = await new Promise(resolve => {
+                const tx  = db.transaction(STORE_NAME, 'readonly');
+                const req = tx.objectStore(STORE_NAME).getAll();
+                req.onsuccess = () => resolve(req.result);
+            });
+            if (all.length === 0) return;
+
+            console.log(`[離線佇列] 網路已恢復，嘗試送出 ${all.length} 筆暫存資料...`);
+
+            for (const item of all) {
+                try {
+                    await submitToHubSpot(item.data);
+                    // 送出成功後從佇列刪除
+                    const tx    = db.transaction(STORE_NAME, 'readwrite');
+                    const store = tx.objectStore(STORE_NAME);
+                    store.delete(item.id);
+                    console.log(`[離線佇列] ID ${item.id} 送出成功並已移除。`);
+                } catch (e) {
+                    console.warn(`[離線佇列] ID ${item.id} 送出仍失敗，等待下次重試。`, e);
+                    break;
+                }
+            }
+            await updateQueueBadge();
+        }
+
+        // ── 離線/上線狀態管理 ────────────────────────────────────────
+        function updateOnlineStatus() {
+            const banner = document.getElementById('offline-banner');
+            if (navigator.onLine) {
+                banner.classList.remove('visible');
+                flushQueue(); // 網路恢復時自動重送佇列
+            } else {
+                banner.classList.add('visible');
+                updateQueueBadge();
+            }
+        }
+
+        window.addEventListener('online',  updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+        // 頁面載入時也檢查一次離線狀態與佇列
+        updateOnlineStatus();
+        updateQueueBadge();
+
+        // ── 核心：封裝送出至 HubSpot 的 fetch 請求 ───────────────────
+        const PORTAL_ID = "246752949";
+        const FORM_ID   = "5be6d1ce-eb9f-4349-860f-5fbfb4b8423d";
+        const API_URL   = `https://api.hsforms.com/submissions/v3/integration/submit/${PORTAL_ID}/${FORM_ID}`;
+
+        function submitToHubSpot(requestBody) {
+            return fetch(API_URL, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify(requestBody)
+            }).then(response => {
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                return response;
+            });
+        }
+
+        // ── 表單提交監聽器（整合 GDPR + 離線佇列）───────────────────
+        document.getElementById('crm-contact-form').addEventListener('submit', async function(event) {
             event.preventDefault();
 
-            if (!validateForm()) return;
+            const isFormValid = validateForm();
+            const isGDPRValid = validateGDPR();
+            if (!isFormValid || !isGDPRValid) return;
 
             const submitBtn  = document.getElementById('submit-button');
             const successMsg = document.getElementById('success-message');
             const errorMsg   = document.getElementById('error-message');
-
-            const firstNameValue   = document.getElementById('firstname').value;
-            const lastNameValue    = document.getElementById('lastname').value;
-            const emailValue       = document.getElementById('email').value;
-            const phoneValue       = document.getElementById('phone').value;
-            const inquiryTypeValue = document.getElementById('inquiry_type').value;
-            const messageValue     = document.getElementById('message').value;
+            const offlineMsg = document.getElementById('offline-message');
 
             submitBtn.disabled    = true;
             submitBtn.textContent = '傳送中...';
             successMsg.style.display = 'none';
             errorMsg.style.display   = 'none';
-
-            const portalId = "246752949";
-            const formId   = "5be6d1ce-eb9f-4349-860f-5fbfb4b8423d";
-            const apiUrl   = `https://api.hsforms.com/submissions/v3/integration/submit/${portalId}/${formId}`;
+            offlineMsg.style.display = 'none';
 
             const fields = [
-                { name: "firstname",    value: firstNameValue },
-                { name: "lastname",     value: lastNameValue  },
-                { name: "email",        value: emailValue     },
-                { name: "phone",        value: phoneValue     },
-                { name: "inquiry_type", value: inquiryTypeValue },
-                { name: "message",      value: messageValue   }
+                { name: "firstname",    value: document.getElementById('firstname').value },
+                { name: "lastname",     value: document.getElementById('lastname').value  },
+                { name: "email",        value: document.getElementById('email').value     },
+                { name: "phone",        value: document.getElementById('phone').value     },
+                { name: "inquiry_type", value: document.getElementById('inquiry_type').value },
+                { name: "message",      value: document.getElementById('message').value   }
             ];
 
-            // 階段五：取得動態條件欄位的值（如果有啟用）
+            // 階段五：動態條件欄位
             const companyEl = document.getElementById('company');
             if (!companyEl.disabled && companyEl.value) {
                 fields.push({ name: "company", value: companyEl.value });
@@ -653,50 +862,58 @@
                 fields.push({ name: "product_category", value: productCategoryEl.value });
             }
 
-            // 自動擷取網址中的 UTM 行銷追蹤參數
+            // UTM 行銷追蹤參數
             const urlParams = new URLSearchParams(window.location.search);
-            const utmParams = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
-            
-            utmParams.forEach(param => {
-                const value = urlParams.get(param);
-                if (value) {
-                    fields.push({ name: param, value: value });
-                }
+            ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'].forEach(param => {
+                const val = urlParams.get(param);
+                if (val) fields.push({ name: param, value: val });
             });
 
-            // 讀取瀏覽器中的 hubspotutk 以綁定訪客足跡軌跡
-            const hubspotUtk = getCookie('hubspotutk');
-
             const requestBody = {
-                fields: fields,
+                fields:  fields,
                 context: {
                     pageUri:  window.location.href,
                     pageName: document.title,
-                    hutk:     hubspotUtk
+                    hutk:     getCookie('hubspotutk')
+                },
+                // 階段六：GDPR legalConsentOptions
+                legalConsentOptions: {
+                    consent: {
+                        consentToProcess: true,
+                        text: "我已閱讀並同意隱私權政策，並同意 Alpha 依本政策蒐集與使用本表單所填寫之個人資料。"
+                    }
                 }
             };
 
-            fetch(apiUrl, {
-                method:  'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body:    JSON.stringify(requestBody)
-            })
-            .then(response => {
-                if (response.ok) {
-                    console.log("資料、行銷參數與 UTK 訪客軌跡成功傳送至 HubSpot！");
-                    document.getElementById('crm-contact-form').style.display = 'none';
-                    successMsg.style.display = 'block';
-                    clearDraft(); // 送出成功後清除草稿
-                } else {
-                    throw new Error("API 傳送錯誤，HTTP 狀態碼: " + response.status);
-                }
-            })
-            .catch(error => {
-                console.error("提交表單時發生錯誤：", error);
-                errorMsg.style.display    = 'block';
-                submitBtn.disabled        = false;
-                submitBtn.textContent     = '送出訊息';
-            });
+            // 階段六：離線判斷
+            if (!navigator.onLine) {
+                await addToQueue(requestBody);
+                await updateQueueBadge();
+                document.getElementById('offline-banner').classList.add('visible');
+                offlineMsg.style.display = 'block';
+                submitBtn.disabled       = false;
+                submitBtn.textContent    = '送出訊息';
+                console.log('[離線佇列] 網路離線，已將表單資料加入佇列。');
+                return;
+            }
+
+            // 線上：直接送出
+            try {
+                await submitToHubSpot(requestBody);
+                console.log('資料、行銷參數與 UTK 訪客軌跡成功傳送至 HubSpot！');
+                document.getElementById('crm-contact-form').style.display = 'none';
+                successMsg.style.display = 'block';
+                clearDraft();
+            } catch (error) {
+                console.error('提交表單時發生錯誤：', error);
+                // 送出失敗時同樣存入佇列
+                await addToQueue(requestBody);
+                await updateQueueBadge();
+                errorMsg.textContent     = '❌ 傳送失敗，資料已暫存，網路恢復後將自動重新送出。';
+                errorMsg.style.display   = 'block';
+                submitBtn.disabled       = false;
+                submitBtn.textContent    = '送出訊息';
+            }
         });
     </script>
 
