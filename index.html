@@ -347,6 +347,8 @@
     </style>
     <!-- 引入 HubSpot 官方 SDK (僅用於頁籤一，加 defer 避免阻擋網頁載入) -->
     <script charset="utf-8" type="text/javascript" src="https://js-na2.hsforms.net/forms/embed/v2.js" defer></script>
+    <!-- 引入 Google reCAPTCHA v3 (階段七) -->
+    <script src="https://www.google.com/recaptcha/api.js?render=6LeRN2EtAAAAAEBPKD8BmZf8gmSKbbi0HO8k-HOr"></script>
 </head>
 <body>
 
@@ -776,7 +778,8 @@
 
             for (const item of all) {
                 try {
-                    await submitToHubSpot(item.data);
+                    const token = await getRecaptchaToken();
+                    await submitToHubSpot(item.data, token);
                     // 送出成功後從佇列刪除
                     const tx    = db.transaction(STORE_NAME, 'readwrite');
                     const store = tx.objectStore(STORE_NAME);
@@ -808,16 +811,35 @@
         updateOnlineStatus();
         updateQueueBadge();
 
-        // ── 核心：封裝送出至 HubSpot 的 fetch 請求 ───────────────────
-        const PORTAL_ID = "246752949";
-        const FORM_ID   = "5be6d1ce-eb9f-4349-860f-5fbfb4b8423d";
-        const API_URL   = `https://api.hsforms.com/submissions/v3/integration/submit/${PORTAL_ID}/${FORM_ID}`;
+        // ── 階段七：Serverless Proxy 與 reCAPTCHA ───────────────────
+        const RECAPTCHA_SITE_KEY    = "6LeRN2EtAAAAAEBPKD8BmZf8gmSKbbi0HO8k-HOr";
+        const CLOUDFLARE_WORKER_URL = "https://crm-proxy.9741711.workers.dev";
 
-        function submitToHubSpot(requestBody) {
-            return fetch(API_URL, {
+        function getRecaptchaToken() {
+            return new Promise((resolve, reject) => {
+                if (typeof grecaptcha === 'undefined') {
+                    reject(new Error('reCAPTCHA 腳本未載入或網路異常'));
+                } else {
+                    grecaptcha.ready(function() {
+                        grecaptcha.execute(RECAPTCHA_SITE_KEY, {action: 'submit'})
+                            .then(resolve)
+                            .catch(reject);
+                    });
+                }
+            });
+        }
+
+        function submitToHubSpot(requestBody, recaptchaToken) {
+            // 將 token 混入原本的 payload 中
+            const payload = {
+                ...requestBody,
+                recaptchaToken: recaptchaToken
+            };
+
+            return fetch(CLOUDFLARE_WORKER_URL, {
                 method:  'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body:    JSON.stringify(requestBody)
+                body:    JSON.stringify(payload)
             }).then(response => {
                 if (!response.ok) throw new Error('HTTP ' + response.status);
                 return response;
@@ -899,8 +921,9 @@
 
             // 線上：直接送出
             try {
-                await submitToHubSpot(requestBody);
-                console.log('資料、行銷參數與 UTK 訪客軌跡成功傳送至 HubSpot！');
+                const token = await getRecaptchaToken();
+                await submitToHubSpot(requestBody, token);
+                console.log('資料、行銷參數與 UTK 訪客軌跡成功透過 Proxy 傳送至 HubSpot！');
                 document.getElementById('crm-contact-form').style.display = 'none';
                 successMsg.style.display = 'block';
                 clearDraft();
